@@ -1,0 +1,9 @@
+[ ] Windows support
+[ ] Better command line handling
+[ ] Embed CL kernel so it can be run from a different directory
+[ ] Support for RGB textures w/ chromakey
+[ ] Support for generating high frequency with luminance
+[ ] Change writebuffer to non-blocking
+[ ] Get rid of blur step altogether.  Do that in DR pass with weighted filter.
+[ ] Clean up classes in Container - make them more C++-ish
+
