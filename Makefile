@@ -3,7 +3,7 @@ include Build/rules.mk
 
 MAX_KERNEL_WIDTH := 23
 
-CPPFLAGS += -I../JivLib
+CPPFLAGS += -IExternal
 CPPFLAGS += -I.
 CPPFLAGS += -DMAX_KERNEL_WIDTH=$(MAX_KERNEL_WIDTH)
 

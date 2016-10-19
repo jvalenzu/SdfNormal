@@ -1,7 +1,7 @@
 // -*- mode: c++; tab-width: 4; c-basic-offset: 4; -*-
 
 #include "cda.h"
-#include "Common/util.h"
+#include "slib/Common/Util.h"
 
 // test enum:
 // 0 -> left
@@ -18,13 +18,13 @@ void cda_init(float* heights, const unsigned char* input, const int* islands, in
         {
             int sample_is_alpha = input[4*RC(r,c)+3] < threshold;
             
-            int sample_is_alpha_right = input[4*RC(r,mini(width-1, c+1))+3] < threshold;
-            int island_right = islands[RC(r,mini(width-1, c+1))];
+            int sample_is_alpha_right = input[4*RC(r,Min(width-1, c+1))+3] < threshold;
+            int island_right = islands[RC(r,Min(width-1, c+1))];
             if (island_right != island)
                 sample_is_alpha_right = 1;
             
-            int sample_is_alpha_top = input[4*RC(maxi(0,r-1),c)+3] < threshold;
-            int island_top = islands[RC(maxi(0,r-1),c)];
+            int sample_is_alpha_top = input[4*RC(Max(0,r-1),c)+3] < threshold;
+            int island_top = islands[RC(Max(0,r-1),c)];
             if (island_top != island)
                  sample_is_alpha_top = 1;
             
@@ -72,8 +72,8 @@ void cda_iterate(float* heights, const unsigned char* input, size_t width, size_
         {  0, 43, 38,  0, 38, 43,  0 }
     };
     
-    int dimr = ARRAY_SIZE_2R(forwardWeightsCda);
-    int dimc = ARRAY_SIZE_2C(forwardWeightsCda);
+    int dimr = ELEMENTSOF_2R(forwardWeightsCda);
+    int dimc = ELEMENTSOF_2C(forwardWeightsCda);
     
     // forwards
     for (int r=0; r<height; ++r)
@@ -164,7 +164,7 @@ float cda_normalize(float* height_map, const unsigned char* image, const int* is
         float height = height_map[i];
         if (height < 0)
             continue;
-        max_height = maxf(height, max_height);
+        max_height = Max(height, max_height);
     }
     for (int i=0; i<width*height; ++i)
     {

@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "blur.h"
-#include "Common/Util.h"
+#include "slib/Common/Util.h"
 
 struct pascal_entry_t
 {
@@ -41,7 +41,7 @@ static unsigned char* s_ScratchMem;
 
 void blur_init()
 {
-    for (int i=0; i<ARRAY_SIZE(s_PascalTriangle); ++i)
+    for (int i=0; i<ELEMENTSOF(s_PascalTriangle); ++i)
     {
         const size_t entries = s_PascalTriangle[i].m_Entries;
         float total = 0.0f;
@@ -62,15 +62,15 @@ void blur_init()
     s_ScratchMem = (unsigned char*)(((uintptr_t) s_ScratchMemRaw)+15 & ~15);
 }
 
-void blur2d(float* values, size_t width, size_t height, int kernel_width, const bitvector_t* mask)
+void blur2d(float* values, size_t width, size_t height, int kernel_width, const BitVector* mask)
 {
-    bitvector_t* row_mask = bitvector_init_heap(width);
-    bitvector_t* column_mask = bitvector_init_heap(height);
+    BitVector* row_mask = BitVector::InitFromHeap(width);
+    BitVector* column_mask = BitVector::InitFromHeap(height);
     
     // blur row
     for (int r=0; r<height; ++r)
     {
-        bitvector_copy(row_mask, mask, r*width, width);
+        mask->Copy(row_mask, r*width, width);
         blur(&values[r*width], width, kernel_width, row_mask);
     }
     
@@ -81,7 +81,7 @@ void blur2d(float* values, size_t width, size_t height, int kernel_width, const 
         for (int r=0; r<height; ++r)
         {
             temp[r] = values[r*width+c];
-            bitvector_set(column_mask, r, BITVECTOR_GET(mask, r*width+c));
+            column_mask->Set(r, BITVECTOR_GET(mask, r*width+c));
         }
         
         // blur column
@@ -92,11 +92,11 @@ void blur2d(float* values, size_t width, size_t height, int kernel_width, const 
     }
     free(temp);
     
-    bitvector_destroy_heap(row_mask);
-    bitvector_destroy_heap(column_mask);
+    BitVector::Destroy(row_mask);
+    BitVector::Destroy(column_mask);
 }
 
-static float sample(float* values, const size_t values_length, float value_index, float weight, int default_index, const bitvector_t* mask)
+static float sample(float* values, const size_t values_length, float value_index, float weight, int default_index, const BitVector* mask)
 {
     if (value_index < 0 || value_index > values_length-1 || !BITVECTOR_GET(mask, value_index))
         value_index = default_index;
@@ -111,9 +111,9 @@ static float sample(float* values, const size_t values_length, float value_index
     return sample*weight;
 }
 
-void blur(float* values, size_t length, int kernel_width, const bitvector_t* mask)
+void blur(float* values, size_t length, int kernel_width, const BitVector* mask)
 {
-    kernel_width = mini(kernel_width, 12);
+    kernel_width = Min(kernel_width, 12);
     if (kernel_width <= 0)
         return;
     

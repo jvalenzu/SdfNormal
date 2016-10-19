@@ -1,0 +1,3 @@
+[submodule "External/slib"]
+	path = External/slib
+	url = https://github.com/jvalenzu/slib.git

@@ -2,8 +2,8 @@
 #include <math.h>
 
 #include "cda.h"
-#include "Common/Util.h"
-#include "Common/Vec.h"
+#include "slib/Common/Util.h"
+#include "Vec.h"
 
 #define RC(r,c) ((r)*width+(c))
 
@@ -35,10 +35,10 @@ void dr_init(float* heights, border_pixel_t* border_pixels, const unsigned char*
             // 0 1 2
             // 3   4
             // 5 6 7
-            int populated1 = input[4*RC(maxi(r-1,0),                       c)+3] > threshold;
-            int populated6 = input[4*RC(mini(r+1,height-1),                c)+3] > threshold;
-            int populated3 = input[4*RC(r,                       maxi(c-1,0))+3] > threshold;
-            int populated4 = input[4*RC(r,                 mini(c+1,width-1))+3] > threshold;
+            int populated1 = input[4*RC(Max(r-1,0),                       c)+3] > threshold;
+            int populated6 = input[4*RC(Min(r+1,height-1),                c)+3] > threshold;
+            int populated3 = input[4*RC(r,                       Max(c-1,0))+3] > threshold;
+            int populated4 = input[4*RC(r,                 Min(c+1,width-1))+3] > threshold;
             
             int neighborPopulated = populated1 || populated6 || populated3 || populated4;
             if (neighborPopulated)
@@ -156,7 +156,7 @@ float dr_normalize(float* height_map, const unsigned char* image, const int* isl
         float height = height_map[i];
         if (height < 0)
             continue;
-        max_height = maxf(height, max_height);
+        max_height = Max(height, max_height);
     }
     for (int i=0; i<width*height; ++i)
     {

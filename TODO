@@ -1,3 +1,4 @@
+[ ] Filter out C and C++ files in Makefile rules to avoid compiling C as C++
 [ ] Windows support
 [ ] Better command line handling
 [ ] Embed CL kernel so it can be run from a different directory
@@ -6,4 +7,3 @@
 [ ] Change writebuffer to non-blocking
 [ ] Get rid of blur step altogether.  Do that in DR pass with weighted filter.
 [ ] Clean up classes in Container - make them more C++-ish
-

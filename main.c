@@ -13,11 +13,11 @@
 #include <stdint.h>
 #include <OpenCL/opencl.h>
 
-#include "External/lodepng.h"
-#include "Container/Bit.h"
-#include "Common/Vec.h"
-#include "Common/Util.h"
-#include "Tool/Queue.h"
+#include "lodepng.h"
+#include "slib/Container/BitVector.h"
+#include "Vec.h"
+#include "slib/Common/Util.h"
+#include "slib/Tool/Queue.h"
 #include "cl.h"
 #include "dr.h"
 
@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     for (int j=1; j<argc; ++j)
     {
         int c=0;
-        for (int i=0; i<ARRAY_SIZE(options); ++i)
+        for (int i=0; i<ELEMENTSOF(options); ++i)
         {
             c+=sscanf(argv[j], options[i], values[i]);
         }
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
     
     if ((kernel_width & 1) == 0)
         kernel_width++;
-    kernel_width = mini(kernel_width, MAX_KERNEL_WIDTH);
+    kernel_width = Min(kernel_width, MAX_KERNEL_WIDTH);
     
     char blur_kernel_x[64];
     snprintf(blur_kernel_x, sizeof blur_kernel_x, "blur2d_%dx", kernel_width);
@@ -313,7 +313,7 @@ int main(int argc, char** argv)
                     intensity_g[index] = gC;
                 }
             }
-            
+
             // break up the lines by adding noise and blurring.
             for (int i=0; blur_passes>0 && i<width*height; ++i)
             {
@@ -325,9 +325,9 @@ int main(int argc, char** argv)
                 intensity_r[i] += r0;
                 intensity_g[i] += r1;
             }
-            
+
             // make alpha mask
-            bitvector_t* mask = bitvector_init_heap(width*height);
+            BitVector* mask = BitVector::InitFromHeap(width*height);
             for (int r=0; r<height; ++r)
             {
                 for (int c=0; c<width; ++c)
@@ -337,7 +337,7 @@ int main(int argc, char** argv)
                     const int alpha = image[address+3];
                     
                     const int value = alpha >= alpha_threshold ? 1 : 0;
-                    bitvector_set(mask, index, value);
+                    mask->Set(index, value);
                 }
             }
             
@@ -354,6 +354,7 @@ int main(int argc, char** argv)
                 printf("Error: Failed to create compute kernel: str: %s err: %d\n", buffer, err);
                 exit(1);
             }
+
             
             cl_event y_sync[2];
             
@@ -361,7 +362,7 @@ int main(int argc, char** argv)
             cl_mem input1 = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float)*width*height, NULL, NULL);
             cl_mem output0 = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float)*width*height, NULL, NULL);
             cl_mem output1 = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float)*width*height, NULL, NULL);
-            cl_mem alpha_mask = clCreateBuffer(context, CL_MEM_READ_ONLY, bitvector_rawsize(mask), NULL, NULL);
+            cl_mem alpha_mask = clCreateBuffer(context, CL_MEM_READ_ONLY, mask->Size(), NULL, NULL);
             cl_mem island_mask = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(int)*width*height, NULL, NULL);
             cl_mem original_image = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(int)*width*height, NULL, NULL);
             
@@ -371,7 +372,7 @@ int main(int argc, char** argv)
                 exit(1);
             }
             
-            err = clEnqueueWriteBuffer(commands, alpha_mask, CL_TRUE, 0, bitvector_rawsize(mask), bitvector_getraw(mask), 0, NULL, NULL);
+            err = clEnqueueWriteBuffer(commands, alpha_mask, CL_TRUE, 0, mask->Size(), mask->GetRaw(), 0, NULL, NULL);
             if (err != CL_SUCCESS)
             {
                 printf("Error: Failed to write to bitvector mask\n");
@@ -596,7 +597,7 @@ int main(int argc, char** argv)
             clReleaseKernel(blur2dy);
             clReleaseKernel(finalize_image);
             
-            bitvector_destroy_heap(mask);
+            BitVector::Destroy(mask);
             
             free(intensity_r);
             free(intensity_g);
@@ -644,9 +645,9 @@ int main(int argc, char** argv)
                 
                 if (image[pixel_offset+3] > alpha_threshold)
                 {
-                    r = colors[island%ARRAY_SIZE(colors)];
-                    g = colors[(2*island+1)%ARRAY_SIZE(colors)];
-                    b = colors[(3*island+1)%ARRAY_SIZE(colors)];
+                    r = colors[island%ELEMENTSOF(colors)];
+                    g = colors[(2*island+1)%ELEMENTSOF(colors)];
+                    b = colors[(3*island+1)%ELEMENTSOF(colors)];
                 }
                 
                 island_visualization[pixel_offset+0] = r;
@@ -695,7 +696,7 @@ static int island_init(int* islands, int* islands_count, unsigned char* image, s
                 continue;
             
             // check immediate neighbors
-            for (int i=0; islands[index]<0 && i<ARRAY_SIZE(rSteps); ++i)
+            for (int i=0; islands[index]<0 && i<ELEMENTSOF(rSteps); ++i)
             {
                 int r_t = r + rSteps[i];
                 int c_t = c + cSteps[i];
@@ -727,11 +728,11 @@ static int island_init(int* islands, int* islands_count, unsigned char* image, s
                     int m_C;
                 } pl;
                 
-                queue_t pixels_to_fill;
-                queue_init(&pixels_to_fill, sizeof pl);
+                Queue pixels_to_fill;
+                pixels_to_fill.InitInPlace(sizeof pl);
                 
                 pl.m_R = r; pl.m_C = c;
-                queue_enqueue(&pixels_to_fill, &pl);
+                pixels_to_fill.Enqueue(&pl);
                 
                 // assign a new island
                 int island = islandCount++;
@@ -739,13 +740,13 @@ static int island_init(int* islands, int* islands_count, unsigned char* image, s
                 
                 int pixels_colored = 1;
                 
-                while (queue_count(&pixels_to_fill)>0)
+                while (pixels_to_fill.Count()>0)
                 {
                     // pop off our current pixel location
-                    queue_dequeue(&pixels_to_fill, &pl);
+                    pixels_to_fill.Dequeue(&pl);
                     
                     // check immediate neighbors
-                    for (int i=0; i<ARRAY_SIZE(rSteps); ++i)
+                    for (int i=0; i<ELEMENTSOF(rSteps); ++i)
                     {
                         int neighbor_r = pl.m_R + rSteps[i];
                         int neighbor_c = pl.m_C + cSteps[i];
@@ -769,12 +770,12 @@ static int island_init(int* islands, int* islands_count, unsigned char* image, s
                             
                             // we'll need to visit this pixel's neighbors.
                             pl.m_R = neighbor_r; pl.m_C = neighbor_c;
-                            queue_enqueue(&pixels_to_fill, &pl);
+                            pixels_to_fill.Enqueue(&pl);
                         }
                     }
                 }
                 
-                queue_destroy(&pixels_to_fill);
+                pixels_to_fill.Destroy();
                 islands_count[island] = pixels_colored;
             }
         }
